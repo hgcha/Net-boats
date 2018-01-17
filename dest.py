@@ -219,25 +219,8 @@ def XYtoDegree(Dlati, Dlong) : #
 			return pi/2
 		else :
 			return 3*pi/2
-
-	
-def TurnHead(Gdegree):
-	#set heading 
-	heading = radians(270)
-	Ddegree = degrees(Gdegree) - degrees(heading) #diffrence heading and goal Degree
+def AdjustAngle (Gdegree) :
 	erroranagle = 3 #later need to set  
-
-	print "heading :%f, Ddegree:%f" %(heading, Ddegree)
-
-	if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
-		angle = 1 #turn left
-	elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
-		angle = 3 #turn right
-	
-	print "angle change  %d" %angle
-
-	#set direction
-	#until heading equal goal degree
 	angleneg = Gdegree-erroranagle
 	anglepos = Gdegree+erroranagle
 
@@ -245,13 +228,32 @@ def TurnHead(Gdegree):
 		angleneg = 360 + angleneg
 	if anglepos >= 360:
 		anglepos = anglepos - 360
-			
+
+	return (anglepos, angleneg)	
+
+def TurnHead(Gdegree):
+	#set heading 
+	heading = getYaw()
+	Ddegree = degrees(Gdegree) - degrees(heading) #diffrence heading and goal Degree
+	(anglepos, angleneg) =AdjustAngle(Gdegree)
+	
+	print "heading :%f, Ddegree:%f" %(heading, Ddegree)
+
+	#until heading equal goal degree
 	while degrees(heading) < angleneg or degrees(heading) >= anglepos :
+		#set direction
+		if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
+			angle = 1 #turn left
+		elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
+			angle = 3 #turn right
+
 	 	AngleWrite(angle)
 		SpeedWrite(1)
 		heading = getYaw()
 		Ddegree = degrees(Gdegree)-degrees(heading)
+		
 		print "heading %f, Ddegree %f" %(heading,Ddegree)
+		print "angle %d" %angle
 
 ###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
 
