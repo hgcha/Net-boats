@@ -66,8 +66,8 @@ def AngleWrite(angle): #control angle
 #         	# print 'EW : %s' % EW_s
 #         	# print
 #         	break
-
-# 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
+#	# calculated Latitude, Longitude
+# 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 
 # 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
 # 	print "lati : %s, long :%s " %(poscessed_Lati,processed_Long)
 # 	return (processed_Lati, processed_Long)
@@ -159,23 +159,29 @@ def GotoDest(dest_lati, dest_long):
   
 	if state ==0:
 		print "state 0"
-		#(Clati, Clong) = locate() #gps func
-		Clati = 37.583057 
-		Clong = 127.026141
-		Dlati = radians(dest_lati) - radians(Clati)  #diffrence current latitude and destination latitude
-		Dlong = radians(dest_long) - radians(Clong)  #diffrence current longitude and destination longitude
-		print "CLati :%f, CLong:%f" %(Clati, Clong)
-		print "Dlati :%f, Dlong :%f" %(Dlati, Dlong)
+		#(Clati, Clong) = locate() #gps func -> radians
+		Clati = 37.583176
+		Clong = 127.026015
 
-		dist = UtmToDistance(Dlati, Dlong, dest_lati, Clati)
-		print "dist %f" %dist
+		#change degree to radians
+		rdest_lati = radians(dest_lati)
+		rdest_long = radians(dest_long)
+		rClati = radians(Clati)
+		rClong = radians(Clong)
+
+		Dlati = rdest_lati - rClati #diffrence current latitude and destination latitude
+		Dlong = rdest_long - rClong  #diffrence current longitude and destination longitude
+		# print "rCLati :%f, rCLong:%f" %(rClati, rClong)
+		# print "Dlati :%f, Dlong :%f" %(Dlati, Dlong)
+
+		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 
 		if dist <=5 :#between current pos - dest pos <= 5m
 			state =1
 
 		else :
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
-			print "Gdegree :%f" %(Gdegree)
+			#print "Gdegree :%f" %(Gdegree)
 			TurnHead(Gdegree)	
 
 			#go straight during 10sec	
@@ -192,14 +198,15 @@ def GotoDest(dest_lati, dest_long):
 		
 def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
 	#get distance between current pos and dest pos 
-	R = 6373000.0
+	R = 6371000.0
 	a = sin(Dlati/2)**2 + cos(dest_lati)*cos(Clati)*sin(Dlong/2)**2
 	c = 2*atan2(sqrt(a), sqrt(1-a))
 	distance = R*c
-	print "Result: %f" %(distance)
+
+	print "distance: %f" %(distance)
 	return distance
 
-def XYtoDegree(Dlati, Dlong) :
+def XYtoDegree(Dlati, Dlong) : #
 	if Dlati>0:
 		if Dlong >=0:
 			return atan(Dlong/Dlati)
@@ -216,36 +223,45 @@ def XYtoDegree(Dlati, Dlong) :
 	
 def TurnHead(Gdegree):
 	#set heading 
-	heading = getYaw()#mpu9250(yaw) : between 0 to 360 => radians
-	Ddegree = degrees(Gdegree)-degrees(heading) #diffrence heading and goal Degree
-	error = 0.02
+	heading = radians(270)
+	Ddegree = degrees(Gdegree) - degrees(heading) #diffrence heading and goal Degree
+	erroranagle = 3 #later need to set  
 
 	print "heading :%f, Ddegree:%f" %(heading, Ddegree)
 
-	if (Ddegree <0 and abs(Ddegree)>= 180) or (Ddegree >= 0 and abs(Ddegree)< 180) :
+	if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
 		angle = 1 #turn left
-	elif (Ddegree >=0 and abs(Ddegree)>= 180) or (Ddegree < 0 and abs(Ddegree)< 180) :
+	elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
 		angle = 3 #turn right
 	
 	print "angle change  %d" %angle
+
 	#set direction
 	#until heading equal goal degree
-	while heading <= Gdegree-Gdegree*error and heading >= Gdegree+Gdegree*error:
+	angleneg = Gdegree-erroranagle
+	anglepos = Gdegree+erroranagle
+
+	if angleneg < 0 :
+		angleneg = 360 + angleneg
+	if anglepos >= 360:
+		anglepos = anglepos - 360
+			
+	while degrees(heading) < angleneg or degrees(heading) >= anglepos :
 	 	AngleWrite(angle)
 		SpeedWrite(1)
 		heading = getYaw()
 		Ddegree = degrees(Gdegree)-degrees(heading)
 		print "heading %f, Ddegree %f" %(heading,Ddegree)
-		print "angle %d" %angle
-
 
 ###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
 
 [offset_x, offset_y] = init_imu()
 
-while True:
-	GotoDest(35.174325, 129.002584)
+while state!=2:
+	GotoDest(37.584604, 127.026551) #가고자하는 위치 입력
 
+if state ==2:
+	SpeedWrite(0)
 # 창의관 : 37.583057, 127.026141
 # 하나스퀘어 : 37.584676, 127.025642
 # 부산 : 35.174325, 129.002584
