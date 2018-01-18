@@ -23,6 +23,7 @@ speed = 0
 angle = 2
 state = 0
 
+
 def SpeedWrite(speed): #desire speed
 	if speed > 10:
 		print 'speed cannot be greater than 10.'
@@ -122,14 +123,25 @@ def init_imu():
 
 def getYaw() :
 	global offset_x, offset_y
+	time.sleep(0.3)
 	[accel, gyro, mag] = readAll()
 	x = mag['x'] - offset_x
 	y = mag['y'] - offset_y
 
-	#theta = asin(accel['x'] / sqrt(accel['y']*accel['y'] + accel['z']*accel['z']))
-	#low = asin(accel['y'] / sqrt(accel['x']*accel['x'] + accel['z']*accel['z']))
+	if accel['x'] > 1 :
+		accel['x'] = 1
+	elif accel['x'] < -1 :
+		accel['x'] = -1
+	if accel['y'] > 1 :
+		accel['y'] = 1
+	elif accel['y'] < -1 :
+		accel['y'] = -1
+	
 	theta = asin(accel['x'])
 	low = asin(accel['y'])
+
+	#theta = asin(accel['x'] / sqrt(accel['y']*accel['y'] + accel['z']*accel['z']))
+	#low = asin(accel['y'] / sqrt(accel['x']*accel['x'] + accel['z']*accel['z']))
 
 	x = x*cos(theta) + y*sin(low) * sin(theta) - mag['z'] * cos(low) * sin(theta)
 	y = y * cos(low) + mag['z'] * sin(theta)
@@ -187,7 +199,7 @@ def GotoDest(dest_lati, dest_long):
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
-			time.sleep(1) #would be change(according to distance)
+			time.sleep(10) #would be change(according to distance)
 
 					
 	elif state ==1:
@@ -220,7 +232,7 @@ def XYtoDegree(Dlati, Dlong) : #
 		else :
 			return 3*pi/2
 def AdjustAngle (Gdegree) :
-	erroranagle = 3 #later need to set  
+	erroranagle = 10 #later need to set  
 	angleneg = Gdegree-erroranagle
 	anglepos = Gdegree+erroranagle
 
@@ -259,11 +271,14 @@ def TurnHead(Gdegree):
 
 [offset_x, offset_y] = init_imu()
 
+# while state!=2 :
+# 	getYaw()
+
 while state!=2:
 	GotoDest(37.584604, 127.026551) #가고자하는 위치 입력
-
 if state ==2:
 	SpeedWrite(0)
+	AngleWrite(2)
 # 창의관 : 37.583057, 127.026141
 # 하나스퀘어 : 37.584676, 127.025642
 # 부산 : 35.174325, 129.002584
