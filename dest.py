@@ -62,7 +62,9 @@ def locate(): #gps return lati,long
 			# print 'NS : %s' % NS_s
 			# print 'Longitude: %s' % Longitude_s
 			# print 'EW : %s' % EW_s
-			break
+			if (len(Latitude_s[:2]) + len(Longitude_s[:2])) > 10 :		# if GPS signal found, print the result
+				break
+			print('GPS signal not found')
 	# calculated Latitude, Longitude
 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
