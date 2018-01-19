@@ -1,5 +1,4 @@
 #-*-coding:utf-8 -*-
-
 import wiringpi2 as wiringpi
 import FaBo9Axis_MPU9250
 import time
@@ -67,7 +66,7 @@ def AngleWrite(angle): #control angle
 #         	# print 'EW : %s' % EW_s
 #         	# print
 #         	break
-#	# calculated Latitude, Longitude
+# 	# calculated Latitude, Longitude
 # 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 
 # 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
 # 	print "lati : %s, long :%s " %(poscessed_Lati,processed_Long)
@@ -93,32 +92,36 @@ def readAll():
 	return accel, gyro, mag
 
 def init_imu():
-	count_amount = 100
-	max_x = 0
-	min_x = 1000
-	max_y = 0
-	min_y = 1000
-	i = 0
+	# count_amount = 100
+	# max_x = 0
+	# min_x = 1000
+	# max_y = 0
+	# min_y = 1000
+	# i = 0
 		
-	while i < count_amount :
-		[accel, gyro, mag] = readAll()
-		if mag['x'] > max_x :
-			max_x = mag['x']
-		elif mag['x'] < min_x :
-			min_x = mag['x']
-		if mag['y'] > max_y :
-			max_y = mag['y']
-		elif mag['y'] < min_y :
-			min_y = mag['y']
-		print("x = %d %d \n y = %d %d\n") % (max_x, min_x, max_y, min_y)
-		print("process : %d/%d") % (i , count_amount) 
-		i = i + 1
-		time.sleep(0.1)
+	# while i < count_amount :
+	# 	[accel, gyro, mag] = readAll()
+	# 	if mag['x'] > max_x :
+	# 		max_x = mag['x']
+	# 	elif mag['x'] < min_x :
+	# 		min_x = mag['x']
+	# 	if mag['y'] > max_y :
+	# 		max_y = mag['y']
+	# 	elif mag['y'] < min_y :
+	# 		min_y = mag['y']
+	# 	print("x = %d %d \n y = %d %d\n") % (max_x, min_x, max_y, min_y)
+	# 	print("process : %d/%d") % (i , count_amount) 
+	# 	i = i + 1
+	# 	time.sleep(0.1)
 
-	offset_x = (max_x + min_x)/2	#offset value 측정
-	offset_y = (max_y + min_y)/2
+	# offset_x = (max_x + min_x)/2	#offset value 측정
+	# offset_y = (max_y + min_y)/2
 
-	print("Initializing Success.\n")
+	# print("Initializing Success.\n")
+
+	offset_x = 6	#offset value 측정
+	offset_y = 50
+
 	return offset_x, offset_y
 
 def getYaw() :
@@ -171,9 +174,9 @@ def GotoDest(dest_lati, dest_long):
   
 	if state ==0:
 		print "state 0"
-		#(Clati, Clong) = locate() #gps func -> radians
-		Clati = 37.583176
-		Clong = 127.026015
+		(Clati, Clong) = locate() #gps func -> radians
+		# Clati = 37.583176
+		# Clong = 127.026015
 
 		#change degree to radians
 		rdest_lati = radians(dest_lati)
@@ -195,13 +198,12 @@ def GotoDest(dest_lati, dest_long):
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
 			#print "Gdegree :%f" %(Gdegree)
 			TurnHead(Gdegree)	
-
+			print "out Turn head"
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
-			time.sleep(10) #would be change(according to distance)
-
-					
+			time.sleep(1) #would be change(according to distance)
+			
 	elif state ==1:
 		print "state 1"
 		Gdegree = 0 #just look north direction
@@ -221,21 +223,20 @@ def UtmToDistance(Dlati, Dlong, dest_lati, Clati):
 def XYtoDegree(Dlati, Dlong) : #
 	if Dlati>0:
 		if Dlong >=0:
-			return atan(Dlong/Dlati)
+			return degrees(atan(Dlong/Dlati))
 		else :
-			return atan(Dlong/Dlati) +2*pi
+			return degrees(atan(Dlong/Dlati) +2*pi)
 	elif Dlati<0:
-		return atan(Dlong/Dlati) + pi
+		return degrees(atan(Dlong/Dlati) + pi)
 	else :
 		if Dlong >=0:
-			return pi/2
+			return degrees(pi/2)
 		else :
-			return 3*pi/2
+			return degrees(3*pi/2)
 def AdjustAngle (Gdegree) :
 	erroranagle = 10 #later need to set  
 	angleneg = Gdegree-erroranagle
 	anglepos = Gdegree+erroranagle
-
 	if angleneg < 0 :
 		angleneg = 360 + angleneg
 	if anglepos >= 360:
@@ -246,11 +247,10 @@ def AdjustAngle (Gdegree) :
 def TurnHead(Gdegree):
 	#set heading 
 	heading = getYaw()
-	Ddegree = degrees(Gdegree) - degrees(heading) #diffrence heading and goal Degree
+	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
 	(anglepos, angleneg) =AdjustAngle(Gdegree)
 	
 	print "heading :%f, Ddegree:%f" %(heading, Ddegree)
-
 	#until heading equal goal degree
 	while degrees(heading) < angleneg or degrees(heading) >= anglepos :
 		#set direction
@@ -262,9 +262,10 @@ def TurnHead(Gdegree):
 	 	AngleWrite(angle)
 		SpeedWrite(1)
 		heading = getYaw()
-		Ddegree = degrees(Gdegree)-degrees(heading)
+		Ddegree = Gdegree -degrees(heading)
 		
 		print "heading %f, Ddegree %f" %(heading,Ddegree)
+		print "Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos)
 		print "angle %d" %angle
 
 ###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
@@ -275,7 +276,7 @@ def TurnHead(Gdegree):
 # 	getYaw()
 
 while state!=2:
-	GotoDest(37.584604, 127.026551) #가고자하는 위치 입력
+	GotoDest(37.584559, 127.025403) #가고자하는 위치 입력
 if state ==2:
 	SpeedWrite(0)
 	AngleWrite(2)
