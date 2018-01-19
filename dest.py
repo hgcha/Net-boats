@@ -15,7 +15,7 @@ wiringpi.pwmSetRange(12000)
 wiringpi.pwmWrite(23, 700)
 wiringpi.pwmWrite(26, 900)
 mpu9250 = FaBo9Axis_MPU9250.MPU9250() #mpu9250 initialize
-ser = serial.Serial('/dev/ttyAMA0', 9600) #gps serial port
+ser = serial.Serial('/dev/ttyACM0', 9600) #gps serial port
 
 #initialize variable
 speed = 0
@@ -45,32 +45,29 @@ def AngleWrite(angle): #control angle
 	# 500 = right
 	# 1200 = left
 
-# def locate(): #gps return lati,long
-# 	while True:
-#     	data = ser.readline()
-#     	if data.startswith('$GPGGA') == True:
-#         	gpgga = data
-#         	location = gpgga.split(',')
-#         	GGAprotocolHeader_s = location[0]
-#         	UTCTime_s = location[1]
-#         	Latitude_s = location[2]
-#         	NS_s = location[3] # North or South
-#         	Longitude_s = location[4]
-#         	EW_s = location[5] # East or West
-        
-#         	# print 'Header: %s' % GGAprotocolHeader_s
-#         	# print 'Time: %s' % UTCTime_s
-#         	# print 'Laitutude: %s' % Latitude_s
-#         	# print 'NS : %s' % NS_s
-#         	# print 'Longitude: %s' % Longitude_s
-#         	# print 'EW : %s' % EW_s
-#         	# print
-#         	break
-# 	# calculated Latitude, Longitude
-# 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 
-# 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
-# 	print "lati : %s, long :%s " %(poscessed_Lati,processed_Long)
-# 	return (processed_Lati, processed_Long)
+def locate(): #gps return lati,long
+	while True:
+		data = ser.readline()
+		if data.startswith('$GNGLL') == True:
+			gpgga = data
+			location = gpgga.split(',')
+			GGAprotocolHeader_s = location[0]
+			Latitude_s = location[1]
+			NS_s = location[2] # North or South
+			Longitude_s = location[3]
+			EW_s = location[4] # East or West
+			# print 'Header: %s' % GGAprotocolHeader_s
+			# print 'Time: %s' % UTCTime_s
+			# print 'Laitutude: %s' % Latitude_s
+			# print 'NS : %s' % NS_s
+			# print 'Longitude: %s' % Longitude_s
+			# print 'EW : %s' % EW_s
+			break
+	# calculated Latitude, Longitude
+	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
+	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
+	print "lati : %s, long :%s " %(processed_Lati,processed_Long)
+	return (processed_Lati, processed_Long)
 
 
 def readAll():
