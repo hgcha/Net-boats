@@ -89,14 +89,14 @@ def readAll():
 	# print " gz = " , ( gyro['z'] )
 
 	mag = mpu9250.readMagnet()
-	# print " mx = " , ( mag['x'] )
-	# print " my = " , ( mag['y'] )
-	# print " mz = " , ( mag['z'] )
+	print " mx = " , ( mag['x'] )
+	print " my = " , ( mag['y'] )
+	print " mz = " , ( mag['z'] )
 		
 	return accel, gyro, mag
 
 def init_imu():
-	global yaw_offset
+	global offset_x, offset_y, yaw_offset
 	# count_amount = 100
 	# max_x = 0
 	# min_x = 1000
@@ -125,53 +125,51 @@ def init_imu():
 	offset_x = 6.0	# previously calculated offset value 
 	offset_y = 50.5
 
-	yaw_offset = getYaw() #sequence of init Yaw
-
-	print("Initializing Complete.\n")
-	return offset_x, offset_y
+	yaw_offset = degrees(getYaw()) #sequence of init Yaw
+	print('yaw_offset : %d') %(yaw_offset)
+	print("Initializing Complete.")
 
 def getYaw() :
-	global offset_x, offset_y
+	global offset_x, offset_y, yaw_offset
 	time.sleep(0.3)
 	[accel, gyro, mag] = readAll()
 	x = mag['x'] - offset_x
 	y = mag['y'] - offset_y
+	z = mag['z']
 
-	if accel['x'] > 1 :
-		accel['x'] = 1
-	elif accel['x'] < -1 :
-		accel['x'] = -1
-	if accel['y'] > 1 :
-		accel['y'] = 1
-	elif accel['y'] < -1 :
-		accel['y'] = -1
+	norm = sqrt(accel['x']*accel['x'] + accel['y']*accel['y'] + accel['z']*accel['z'])
+	accel['x'] /= norm
+	accel['y'] /= norm
+	accel['z'] /= norm
+
+	pitch = asin(-accel['x'])
+	roll = asin(accel['y']/cos(pitch))
+
+	print('pitch = %f , roll = %f') %(pitch,roll)
 	
-	theta = asin(accel['x'])
-	low = asin(accel['y'])
+	x = x*cos(pitch) + z*sin(pitch)
+	y = x*sin(roll)*sin(pitch) + y*cos(roll) - z*sin(roll)*cos(pitch)
+	z = -x*cos(roll)*sin(pitch) + y*sin(roll) + z*cos(roll)*cos(pitch)
 
-	#theta = asin(accel['x'] / sqrt(accel['y']*accel['y'] + accel['z']*accel['z']))
-	#low = asin(accel['y'] / sqrt(accel['x']*accel['x'] + accel['z']*accel['z']))
-
-	x = x*cos(theta) + y*sin(low) * sin(theta) - mag['z'] * cos(low) * sin(theta)
-	y = y * cos(low) + mag['z'] * sin(theta)
+	print('x = %f , y = %f , z = %f') %(x,y,z)
 
 	yaw = atan(y / x) * 180 / pi
-			
-	if(mag['x'] >= 0 and mag['y'] > 0) :
+
+	print('raw_yaw : %f') %yaw
+
+	if(x > 0 and y >= 0) :
 		real_yaw = yaw
-	elif(mag['x'] < 0 and mag['y'] >= 0) :
+	elif(x < 0) :
 		real_yaw = yaw + 180
-	elif(mag['x'] <= 0 and mag['y'] < 0) :
-		real_yaw = yaw + 180
-	elif(mag['x'] >= 0 and mag['y'] <= 0) :
-		real_yaw = 360 + yaw
+	elif(x > 0 and y < 0) :
+		real_yaw = yaw + 360
+	print('fix by mag yaw : %f') %real_yaw
 
 	real_yaw = real_yaw - yaw_offset
-
-	if(real_yaw<0) :
-		real_yaw = 360 + real_yaw
 	print "getYaw %d" %real_yaw
 	return radians(real_yaw)
+
+
 
 def GotoDest(dest_lati, dest_long):
 	global state
@@ -280,10 +278,10 @@ def TurnHead(Gdegree):
 
 ###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
 
-[offset_x, offset_y] = init_imu()
+init_imu()
 
-# while state!=2 :
-# 	getYaw()
+while state!=2 :
+	getYaw()
 
 while state!=2:
 	GotoDest(37.584997, 127.026266) #가고자하는 위치 입력
