@@ -62,9 +62,11 @@ def locate(): #gps return lati,long
 			# print 'NS : %s' % NS_s
 			# print 'Longitude: %s' % Longitude_s
 			# print 'EW : %s' % EW_s
-			if (len(Latitude_s[:2]) + len(Longitude_s[:2])) > 10 :		# if GPS signal found, print the result
+			if len(Latitude_s[:2]) == 0 :		# if GPS signal is founded, exit the function. else, repeat GPS finding sequence 
+				print('GPS signal is not found\n')
+			else :
+				print('GPS signal is found\n')
 				break
-			print('GPS signal not found')
 	# calculated Latitude, Longitude
 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
@@ -116,7 +118,7 @@ def init_imu():
 	# offset_x = (max_x + min_x)/2	#offset value 측정
 	# offset_y = (max_y + min_y)/2
 
-	# print("Initializing Success.\n")
+	print("Initializing Success.\n")
 
 	offset_x = 6	#offset value 측정
 	offset_y = 50
@@ -275,10 +277,12 @@ def TurnHead(Gdegree):
 # 	getYaw()
 
 while state!=2:
-	GotoDest(37.584559, 127.025403) #가고자하는 위치 입력
+	GotoDest(37.584997, 127.026266) #가고자하는 위치 입력
 if state ==2:
 	SpeedWrite(0)
 	AngleWrite(2)
 # 창의관 : 37.583057, 127.026141
-# 하나스퀘어 : 37.584676, 127.025642
+# 하스/헬스장쪽 : 37.584676, 127.025642
+# 하스/과도입구쪽 : 37.584997, 127.026266
 # 부산 : 35.174325, 129.002584
+# 제2공 : 37.583145, 127.027652
