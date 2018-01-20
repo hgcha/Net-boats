@@ -200,7 +200,7 @@ def GotoDest(dest_lati, dest_long):
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 
 		if dist <=5 :#between current pos - dest pos <= 5m
-			state =1
+			state = 1
 
 		else :
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
@@ -214,8 +214,10 @@ def GotoDest(dest_lati, dest_long):
 			
 	elif state ==1:
 		print "state 1"
-		Gdegree = 0 #just look north direction
-		TurnHead(Gdegree)
+		# Gdegree = 0 #just look north direction
+		# TurnHead(Gdegree)
+		AngleWrite(2)
+		SpeedWrite(0)
 		state =2
 		
 def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
