@@ -21,6 +21,9 @@ ser = serial.Serial('/dev/ttyACM0', 9600) #gps serial port
 speed = 0
 angle = 2
 state = 0
+yaw_offset = 0
+offset_x = 0
+offset_y = 0
 
 
 def SpeedWrite(speed): #desire speed
@@ -93,6 +96,7 @@ def readAll():
 	return accel, gyro, mag
 
 def init_imu():
+	global yaw_offset
 	# count_amount = 100
 	# max_x = 0
 	# min_x = 1000
@@ -115,14 +119,15 @@ def init_imu():
 	# 	i = i + 1
 	# 	time.sleep(0.1)
 
-	# offset_x = (max_x + min_x)/2	#offset value 측정
+	# offset_x = (max_x + min_x)/2	#offset value calculate
 	# offset_y = (max_y + min_y)/2
 
-	print("Initializing Success.\n")
+	offset_x = 6.0	# previously calculated offset value 
+	offset_y = 50.5
 
-	offset_x = 6	#offset value 측정
-	offset_y = 50
+	yaw_offset = getYaw() #sequence of init Yaw
 
+	print("Initializing Complete.\n")
 	return offset_x, offset_y
 
 def getYaw() :
@@ -160,6 +165,8 @@ def getYaw() :
 		real_yaw = yaw + 180
 	elif(mag['x'] >= 0 and mag['y'] <= 0) :
 		real_yaw = 360 + yaw
+
+	real_yaw = real_yaw - yaw_offset
 
 	if(real_yaw<0) :
 		real_yaw = 360 + real_yaw
