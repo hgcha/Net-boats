@@ -24,6 +24,7 @@ state = 0
 yaw_offset = 0
 offset_x = 0
 offset_y = 0
+offset_z = 0
 
 
 def SpeedWrite(speed): #desire speed
@@ -96,7 +97,7 @@ def readAll():
 	return accel, gyro, mag
 
 def init_imu():
-	global offset_x, offset_y, yaw_offset
+	global offset_x, offset_y, offset_z, yaw_offset
 	# count_amount = 100
 	# max_x = 0
 	# min_x = 1000
@@ -122,20 +123,21 @@ def init_imu():
 	# offset_x = (max_x + min_x)/2	#offset value calculate
 	# offset_y = (max_y + min_y)/2
 
-	offset_x = 6.0	# previously calculated offset value 
-	offset_y = 50.5
+	offset_x = 5.483	# previously calculated offset value 
+	offset_y = 15.173
+	offset_z = -18.9185
 
 	yaw_offset = degrees(getYaw()) #sequence of init Yaw
 	print('yaw_offset : %d') %(yaw_offset)
 	print("Initializing Complete.")
 
 def getYaw() :
-	global offset_x, offset_y, yaw_offset
+	global offset_x, offset_y, offset_z, yaw_offset
 	time.sleep(0.3)
 	[accel, gyro, mag] = readAll()
 	x = mag['x'] - offset_x
 	y = mag['y'] - offset_y
-	z = mag['z']
+	z = mag['z'] - offset_z
 
 	norm = sqrt(accel['x']*accel['x'] + accel['y']*accel['y'] + accel['z']*accel['z'])
 	accel['x'] /= norm
@@ -153,22 +155,31 @@ def getYaw() :
 
 	print('x = %f , y = %f , z = %f') %(x,y,z)
 
-	yaw = atan(y / x) * 180 / pi
+	yaw = atan2(y,x) * 180 / pi
 
 	print('raw_yaw : %f') %yaw
 
-	if(x > 0 and y >= 0) :
-		real_yaw = yaw
-	elif(x < 0) :
-		real_yaw = yaw + 180
-	elif(x > 0 and y < 0) :
+	# if(x > 0 and y >= 0) :
+	# 	real_yaw = yaw
+	# elif(x < 0) :
+	# 	real_yaw = yaw + 180
+	# elif(x > 0 and y < 0) :
+	# 	real_yaw = yaw + 360
+
+	if y <0 :
 		real_yaw = yaw + 360
+	else :
+		real_yaw = yaw
+
 	print('fix by mag yaw : %f') %real_yaw
 
 	real_yaw = real_yaw - yaw_offset
+
+	if real_yaw < 0 :
+		real_yaw += 360
+
 	print "getYaw %d" %real_yaw
 	return radians(real_yaw)
-
 
 
 def GotoDest(dest_lati, dest_long):
