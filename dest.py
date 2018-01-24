@@ -3,7 +3,6 @@ import wiringpi2 as wiringpi
 import FaBo9Axis_MPU9250
 import time
 import serial
-import sys
 from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
 
 #initialize setting
@@ -227,7 +226,7 @@ def GotoDest(dest_lati, dest_long):
 		# TurnHead(Gdegree)
 		AngleWrite(2)
 		SpeedWrite(0)
-		state =2
+		# state =2
 		
 def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
 	#get distance between current pos and dest pos 
@@ -291,12 +290,12 @@ def TurnHead(Gdegree):
 
 init_imu()
 
-while state!=2 :
-	getYaw()
+# while state!=1 :
+# 	getYaw()
 
-while state!=2:
+while state!=1:
 	GotoDest(37.584997, 127.026266) #가고자하는 위치 입력
-if state ==2:
+if state ==1:
 	SpeedWrite(0)
 	AngleWrite(2)
 # 창의관 : 37.583057, 127.026141

@@ -1,5 +1,6 @@
 #-*-coding:utf-8 -*-
 from sensor_info import * 
+from destserver import dest_lati, dest_long
 import time
 from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
 
@@ -42,6 +43,7 @@ def GotoDest(dest_lati, dest_long):
 			#print ("Gdegree :%f" %(Gdegree))
 			TurnHead(Gdegree)	
 			print("out Turn head")
+			sys.stdout.flush()
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
@@ -49,8 +51,10 @@ def GotoDest(dest_lati, dest_long):
 			
 	elif state ==1:
 		print("state 1")
-		Gdegree = 0 #just look north direction
-		TurnHead(Gdegree)
+		print("arrived dest")
+		sys.stdout.flush()
+		AngleWrite(2)
+		SpeedWrite(0)
 		state =2
 		
 def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
@@ -111,3 +115,16 @@ def TurnHead(Gdegree):
 		print("heading %f, Ddegree %f" % (heading, Ddegree))
 		print("Gdegree %f, angleneg %f, anglepos %f" % (Gdegree, angleneg, anglepos))
 		print("angle %d" % angle)
+
+def untilDest(dest_lati, dest_long) :	
+	while state!=2:
+		GotoDest(dest_lati, dest_long) #가고자하는 위치 입력
+	if state ==2:
+		SpeedWrite(0)
+		AngleWrite(2)
+		return state
+
+slati =float(sys.stdin.readline())
+slong =float(sys.stdin.readline())
+print(slati, slong)
+untilDest(slati,slong)	
