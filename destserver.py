@@ -1,11 +1,15 @@
 #-*-coding:utf-8 -*-
-from sensor_info import SpeedWrite
+#from sensor_info import *
 from socketIO_client import SocketIO, LoggingNamespace
 import json
+import sys
+import subprocess
 
+#initialize variable
+boatProcess = 0
+cmd = ["python","gotodest.py"]
 PingSent = False
 SensorSent = False
-
 baseGps = {"lat": None, "lng": None}
 boatinfo = {"id": int(sys.argv[1]),
             "gps": {"lat" : None, "lng" : None},
@@ -51,7 +55,7 @@ def Stop(err, data):
 		boatinfo["isMoving"] = False
 		boatinfo["isStopped"] = True
 		boat.emit("boat-received", boatinfo)
-		SpeedWrite(0)
+		# SpeedWrite(0)
 		print("I stopped!")
 	else:
 		print("Error occured while Stop")
@@ -67,7 +71,7 @@ def on_reconnect():
 	print('reconnect')
 
 def CheckPing(err, data):
-        global LastPing
+	global LastPing
 	global PingSent
 	if data == None:
 		print("Server didn't respond to boat-ping.")
@@ -82,7 +86,7 @@ def CheckPing(err, data):
 			PingSent = True
 
 def CheckSensor(err, data):
-        global LastSensor
+	global LastSensor
 	global SensorSent
 	if data == None:
 		print("Server didn't respond to boat-sensor.")
@@ -133,9 +137,9 @@ BaseFlag = False
 
 while True:
 	if time.time() > LastPing + 1 and PingSent == True:
-            print(boatinfo)
-	    PingSent = False
-	    boat.emit('boat-ping', boatinfo, CheckPing)
+		print(boatinfo)
+		PingSent = False
+		boat.emit('boat-ping', boatinfo, CheckPing)
 
 	boat.wait(seconds=0.1)
 	
