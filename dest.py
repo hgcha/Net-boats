@@ -1,54 +1,61 @@
 #-*-coding:utf-8 -*-
-import wiringpi2 as wiringpi
-import FaBo9Axis_MPU9250
 import time
 import serial
+import sys, getopt
 from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
 
+sys.path.append('.')
+import RTIMU
+import os.path
+from Adafruit_PWM_Servo_Driver import PWM
+
+
 #initialize setting
-wiringpi.wiringPiSetup() #initialize wiringPi
-wiringpi.pinMode(23, 2) # alternative function = PWM
-wiringpi.pinMode(26, 2) # alternative function = PWM
-wiringpi.pwmSetMode(0) 
-wiringpi.pwmSetRange(12000)
-wiringpi.pwmWrite(23, 700)
-wiringpi.pwmWrite(26, 900)
-mpu9250 = FaBo9Axis_MPU9250.MPU9250() #mpu9250 initialize
-ser = serial.Serial('/dev/ttyACM0', 9600) #gps serial port
+
 
 #initialize variable
 speed = 0
+current_speed = 0
 angle = 2
+current_angle = 0
 state = 0
-yaw_offset = 0
-offset_x = 0
-offset_y = 0
-offset_z = 0
+anglePWM = 320
 
+pwm = PWM(0x40)
+pwm.setPWMFreq(46)                        # Set frequency to 60 Hz
+
+ser = serial.Serial('/dev/ttyACM0', 9600) #gps serial port
+ser.close()
+ser.open()
+serYaw = serial.Serial('/dev/ttyAMA0', 57600, timeout=1)
+serYaw.close()
+serYaw.open()
 
 def SpeedWrite(speed): #desire speed
-	if speed > 10:
-		print 'speed cannot be greater than 10.'
-	elif speed > 0:
-		wiringpi.pwmWrite(23, 880+(speed-1)*10)
-	elif speed == 0:
-		wiringpi.pwmWrite(23, 700)
+	global current_speed
+	if current_speed != speed :
+		current_speed = speed
+		pwm.setPWM(1, 0, speed*20+280)
+		# pwm.setPWM(1, 0, speed*33+268)
+		print('##############################################Speed Change')
+		print('speed : %d') %(speed)
 
 def AngleWrite(angle): #control angle
-	if angle == 1: #left
-		wiringpi.pwmWrite(26, 1200)
-	elif angle == 2: #center
-		wiringpi.pwmWrite(26, 900)
-	elif angle == 3: #right
-		wiringpi.pwmWrite(26, 500)
-	else:
-		print "1: left, 2: center, 3: right"
-
-	# 900 = center
-	# 500 = right
-	# 1200 = left
+	global current_angle, anglePWM
+	if angle == 2 :
+		anglePWM = 320
+	elif angle == 3 :
+		anglePWM = 190
+	elif angle == 1 :
+		anglePWM = 450
+	if current_angle != angle :
+		current_angle = angle
+		pwm.setPWM(0, 0, anglePWM)
+		# pwm.setPWM(0, 0, 32850 + angle*150)
+		print('##############################################Angle Change')
 
 def locate(): #gps return lati,long
+	ser.flushInput()
 	while True:
 		data = ser.readline()
 		if data.startswith('$GNGLL') == True:
@@ -73,126 +80,67 @@ def locate(): #gps return lati,long
 	# calculated Latitude, Longitude
 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
-	print "lati : %s, long :%s " %(processed_Lati,processed_Long)
+	print ("lati : %s, long :%s " %(processed_Lati,processed_Long))
 	return (processed_Lati, processed_Long)
 
 
-def readAll():
-	accel = mpu9250.readAccel()
-	# print " ax = " , ( accel['x'] )
-	# print " ay = " , ( accel['y'] )
-	# print " az = " , ( accel['z'] )
-
-	gyro = mpu9250.readGyro()
-	# print " gx = " , ( gyro['x'] )
-	# print " gy = " , ( gyro['y'] )
-	# print " gz = " , ( gyro['z'] )
-
-	mag = mpu9250.readMagnet()
-	print " mx = " , ( mag['x'] )
-	print " my = " , ( mag['y'] )
-	print " mz = " , ( mag['z'] )
-		
-	return accel, gyro, mag
-
 def init_imu():
-	global offset_x, offset_y, offset_z, yaw_offset
-	# count_amount = 100
-	# max_x = 0
-	# min_x = 1000
-	# max_y = 0
-	# min_y = 1000
-	# i = 0
-		
-	# while i < count_amount :
-	# 	[accel, gyro, mag] = readAll()
-	# 	if mag['x'] > max_x :
-	# 		max_x = mag['x']
-	# 	elif mag['x'] < min_x :
-	# 		min_x = mag['x']
-	# 	if mag['y'] > max_y :
-	# 		max_y = mag['y']
-	# 	elif mag['y'] < min_y :
-	# 		min_y = mag['y']
-	# 	print("x = %d %d \n y = %d %d\n") % (max_x, min_x, max_y, min_y)
-	# 	print("process : %d/%d") % (i , count_amount) 
-	# 	i = i + 1
-	# 	time.sleep(0.1)
+	global imu, poll_interval, SETTINGS_FILE, s
+	SETTINGS_FILE = "RTIMULib"
 
-	# offset_x = (max_x + min_x)/2	#offset value calculate
-	# offset_y = (max_y + min_y)/2
+	print("Using settings file " + SETTINGS_FILE + ".ini")
+	if not os.path.exists(SETTINGS_FILE + ".ini"):
+		print("Settings file does not exist, will be created")
 
-	offset_x = 5.483	# previously calculated offset value 
-	offset_y = 15.173
-	offset_z = -18.9185
+	s = RTIMU.Settings(SETTINGS_FILE)
+	imu = RTIMU.RTIMU(s)
 
-	yaw_offset = degrees(getYaw()) #sequence of init Yaw
-	print('yaw_offset : %d') %(yaw_offset)
-	print("Initializing Complete.")
+	print("IMU Name: " + imu.IMUName())
 
-def getYaw() :
-	global offset_x, offset_y, offset_z, yaw_offset
-	time.sleep(0.3)
-	[accel, gyro, mag] = readAll()
-	x = mag['x'] - offset_x
-	y = mag['y'] - offset_y
-	z = mag['z'] - offset_z
+	if (not imu.IMUInit()):
+		print("IMU Init Failed")
+		sys.exit(1)
+	else:
+		print("IMU Init Succeeded")
 
-	norm = sqrt(accel['x']*accel['x'] + accel['y']*accel['y'] + accel['z']*accel['z'])
-	accel['x'] /= norm
-	accel['y'] /= norm
-	accel['z'] /= norm
+	# this is a good time to set any fusion parameters
+	imu.setSlerpPower(0.02)
+	imu.setGyroEnable(True)
+	imu.setAccelEnable(True)
+	imu.setCompassEnable(True)
 
-	pitch = asin(-accel['x'])
-	roll = asin(accel['y']/cos(pitch))
+	poll_interval = imu.IMUGetPollInterval()
+	print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
-	print('pitch = %f , roll = %f') %(pitch,roll)
-	
-	x = x*cos(pitch) + z*sin(pitch)
-	y = x*sin(roll)*sin(pitch) + y*cos(roll) - z*sin(roll)*cos(pitch)
-	z = -x*cos(roll)*sin(pitch) + y*sin(roll) + z*cos(roll)*cos(pitch)
-
-	print('x = %f , y = %f , z = %f') %(x,y,z)
-
-	yaw = atan2(y,x) * 180 / pi
-
-	print('raw_yaw : %f') %yaw
-
-	# if(x > 0 and y >= 0) :
-	# 	real_yaw = yaw
-	# elif(x < 0) :
-	# 	real_yaw = yaw + 180
-	# elif(x > 0 and y < 0) :
-	# 	real_yaw = yaw + 360
-
-	if y <0 :
-		real_yaw = yaw + 360
-	else :
-		real_yaw = yaw
-
-	print('fix by mag yaw : %f') %real_yaw
-
-	real_yaw = real_yaw - yaw_offset
-
-	if real_yaw < 0 :
-		real_yaw += 360
-
-	print "getYaw %d" %real_yaw
-	return radians(real_yaw)
+def getYaw(): #gps return lati,long
+	global serYaw
+	serYaw.flushInput()
+	while True:
+		data = serYaw.readline()
+		if data.startswith('#YPR=') == True:
+			yprRaw = data
+			ypr = yprRaw.split(',')
+			YAW = ypr[0]
+			PITCH = float(ypr[1])
+			ROLL = float(ypr[2])
+			YAW = float(YAW[5:])
+			if YAW < 0 :
+				YAW = YAW + 360
+			print 'YAW: %f' % YAW
+			print 'PITCH: %f' %PITCH
+			print 'ROLL: %f' % ROLL
+			return radians(YAW)
 
 
 def GotoDest(dest_lati, dest_long):
-	global state
-	global speed
-	global angle
-	speed =0
-	SpeedWrite(speed)
-  
+	global state, speed, angle
+	start_time = time.time() 
 	if state ==0:
-		print "state 0"
+		print ("state 0")
 		(Clati, Clong) = locate() #gps func -> radians
-		# Clati = 37.583176
-		# Clong = 127.026015
+		# time.sleep(1)
+		# Clati = 37.583120
+		# Clong = 127.027510
 
 		#change degree to radians
 		rdest_lati = radians(dest_lati)
@@ -204,38 +152,42 @@ def GotoDest(dest_lati, dest_long):
 		Dlong = rdest_long - rClong  #diffrence current longitude and destination longitude
 		# print "rCLati :%f, rCLong:%f" %(rClati, rClong)
 		# print "Dlati :%f, Dlong :%f" %(Dlati, Dlong)
-
+		
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 
-		if dist <=5 :#between current pos - dest pos <= 5m
+		if dist <= 3 :#between current pos - dest pos <= 5m
 			state = 1
-
+		
 		else :
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
 			#print "Gdegree :%f" %(Gdegree)
+			
 			TurnHead(Gdegree)	
-			print "out Turn head"
-			#go straight during 10sec	
+			print ("out Turn head")
+			#go straight during 0.1sec
 			AngleWrite(2)
 			SpeedWrite(1)
-			time.sleep(1) #would be change(according to distance)
-			
+		
 	elif state ==1:
-		print "state 1"
+		print ("state 1")
 		# Gdegree = 0 #just look north direction
 		# TurnHead(Gdegree)
 		AngleWrite(2)
 		SpeedWrite(0)
-		# state =2
+		state =2
+	print("---GotoDest : %s seconds ---" %(time.time() - start_time))
+	
 		
 def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
+	start_time_UtmToDistance = time.time() 
 	#get distance between current pos and dest pos 
 	R = 6371000.0
 	a = sin(Dlati/2)**2 + cos(dest_lati)*cos(Clati)*sin(Dlong/2)**2
 	c = 2*atan2(sqrt(a), sqrt(1-a))
 	distance = R*c
 
-	print "distance: %f" %(distance)
+	print ("distance: %f") %(distance)
+	print("---start_time_UtmToDistance : %s seconds ---" %(time.time() - start_time_UtmToDistance))
 	return distance
 
 def XYtoDegree(Dlati, Dlong) : #
@@ -251,8 +203,9 @@ def XYtoDegree(Dlati, Dlong) : #
 			return degrees(pi/2)
 		else :
 			return degrees(3*pi/2)
+
 def AdjustAngle (Gdegree) :
-	erroranagle = 10 #later need to set  
+	erroranagle = 20 #later need to set  
 	angleneg = Gdegree-erroranagle
 	anglepos = Gdegree+erroranagle
 	if angleneg < 0 :
@@ -266,40 +219,95 @@ def TurnHead(Gdegree):
 	#set heading 
 	heading = getYaw()
 	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
-	(anglepos, angleneg) =AdjustAngle(Gdegree)
-	
-	print "heading :%f, Ddegree:%f" %(heading, Ddegree)
+	(anglepos, angleneg) =AdjustAngle(Gdegree)		
+	print ("heading :%f, Ddegree:%f") %(heading, Ddegree)
 	#until heading equal goal degree
-	while degrees(heading) < angleneg or degrees(heading) >= anglepos :
-		#set direction
-		if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
-			angle = 1 #turn left
-		elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
-			angle = 3 #turn right
 
-	 	AngleWrite(angle)
+	if (anglepos - angleneg >= 0) == True :
+		while degrees(heading) < angleneg or degrees(heading) >= anglepos :
+			#set direction
+			if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
+				angle = 1 #turn left
+			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
+				angle = 3 #turn right
+			AngleWrite(angle)
+			SpeedWrite(1)
+			heading = getYaw()
+
+			(anglepos, angleneg) =AdjustAngle(Gdegree)			#question
+			Ddegree = Gdegree - degrees(heading)
+			print ("heading %f, Ddegree %f") %(heading,Ddegree)
+			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
+			print ("angle %d") %angle
+	else :
+		while not(degrees(heading) > angleneg or degrees(heading) <= anglepos) :
+			#set direction
+			if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
+				angle = 1 #turn left
+			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
+				angle = 3 #turn right
+			AngleWrite(angle)
+			SpeedWrite(1)
+			heading = getYaw()
+
+			(anglepos, angleneg) =AdjustAngle(Gdegree)			#question
+			Ddegree = Gdegree - degrees(heading)
+			print ("heading %f, Ddegree %f") %(heading,Ddegree)
+			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
+			print ("angle %d") %angle
+
+def init_control() :
+	for i in range(1) :
+		AngleWrite(1)
 		SpeedWrite(1)
-		heading = getYaw()
-		Ddegree = Gdegree -degrees(heading)
-		
-		print "heading %f, Ddegree %f" %(heading,Ddegree)
-		print "Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos)
-		print "angle %d" %angle
+		time.sleep(1)
+		AngleWrite(2)
+		SpeedWrite(0)
+		time.sleep(1)
+		AngleWrite(3)
+		time.sleep(1)
+	SpeedWrite(0)
+	AngleWrite(2)
 
-###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
 
-init_imu()
+init_control()
 
-# while state!=1 :
+# while state!=2 :
 # 	getYaw()
 
-while state!=1:
-	GotoDest(37.584997, 127.026266) #가고자하는 위치 입력
-if state ==1:
+# for i in range(190,10000,5):
+# 	pulse = i# + 33100
+# 	pwm.setPWM(0, 0, pulse)
+# 	print(pulse)
+# 	time.sleep(1)
+
+# for speed in range(10) :
+# 	SpeedWrite(speed)
+# 	print(speed)
+# 	time.sleep(2)
+
+# while (True):
+#   # Change speed of continuous servo on channel O
+# 	AngleWrite(1)
+# 	SpeedWrite(1)
+# 	time.sleep(2)
+# 	print(1)
+# 	AngleWrite(2)
+# 	time.sleep(2)
+# 	print(2)
+# 	AngleWrite(3)
+# 	time.sleep(2)
+# 	SpeedWrite(0)
+# 	print(3)
+
+while state!=2:
+	GotoDest(37.583243, 127.027523) #가고자하는 위치 입력
+if state ==2:
 	SpeedWrite(0)
 	AngleWrite(2)
 # 창의관 : 37.583057, 127.026141
 # 하스/헬스장쪽 : 37.584676, 127.025642
 # 하스/과도입구쪽 : 37.584997, 127.026266
 # 부산 : 35.174325, 129.002584
-# 제2공 : 37.583145, 127.027652
+# 제2공 : 37.583243, 127.027523
+# 남문 : 37.583160, 127.027510
