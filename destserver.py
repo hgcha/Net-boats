@@ -155,8 +155,21 @@ def GoToBase(lat, lng):
 	print("I'll goto base")
 
 
-###최초에 init_imu() 를 이용해 initialize 한 뒤, getYaw()함수를 사용해야 함.
-init_imu()
+def init_control() :
+	for i in range(1) :
+		AngleWrite(1)
+		SpeedWrite(1)
+		time.sleep(1)
+		AngleWrite(2)
+		SpeedWrite(0)
+		time.sleep(1)
+		AngleWrite(3)
+		time.sleep(1)
+	SpeedWrite(0)
+	AngleWrite(2)
+
+#최초로 자동차 세팅
+init_control()
 
 print("waiting for connection...")
 boat = SocketIO('192.168.1.121', 8080, LoggingNamespace)
@@ -186,7 +199,7 @@ while True:
 	output = boatProcess.stdout.readline()
 	if boatProcess.poll() is not None:
 		print("boat arrived dest")
-		boat.emit('boat-arrived',boatinfo)
+		boat.emit('boat-arrived', boatinfo)
 	else :
 		print("boat state", output.strip())	
 

@@ -10,11 +10,7 @@ angle = 2
 state = 0
 
 def GotoDest(dest_lati, dest_long):	
-	global state
-	global speed
-	global angle
-	speed = 0
-	SpeedWrite(speed)
+	global state,speed,angle
   
 	if state ==0:
 		print("state 0")
@@ -35,7 +31,7 @@ def GotoDest(dest_lati, dest_long):
 
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 
-		if dist <= 5:#between current pos - dest pos <= 5m
+		if dist <= 3:#between current pos - dest pos <= 5m
 			state =1
 
 		else:
@@ -47,7 +43,7 @@ def GotoDest(dest_lati, dest_long):
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
-			time.sleep(1) #would be change(according to distance)
+			# time.sleep(1) #would be change(according to distance)
 			
 	elif state ==1:
 		print("state 1")
@@ -97,24 +93,43 @@ def TurnHead(Gdegree):
 	heading = getYaw()
 	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
 	(anglepos, angleneg) =AdjustAngle(Gdegree)
-	
 	print("heading: %f, Ddegree: %f" % (heading, Ddegree))
-	#until heading equal goal degree
-	while degrees(heading) < angleneg or degrees(heading) >= anglepos :
-		#set direction
-		if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
-			angle = 1 #turn left
-		elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
-			angle = 3 #turn right
 
-		AngleWrite(angle)
-		SpeedWrite(1)
-		heading = getYaw()
-		Ddegree = Gdegree -degrees(heading)
-		
-		print("heading %f, Ddegree %f" % (heading, Ddegree))
-		print("Gdegree %f, angleneg %f, anglepos %f" % (Gdegree, angleneg, anglepos))
-		print("angle %d" % angle)
+	#until heading equal goal degree
+	if (anglepos - angleneg >= 0) == True :
+		while degrees(heading) < angleneg or degrees(heading) >= anglepos :
+			#set direction
+			if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
+				angle = 1 #turn left
+			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
+				angle = 3 #turn right
+			AngleWrite(angle)
+			SpeedWrite(1)
+			heading = getYaw()
+
+			Gdegree = XYtoDegree(Dlati,Dlong)
+			(anglepos, angleneg) =AdjustAngle(Gdegree)
+			Ddegree = Gdegree - degrees(heading)
+			print ("heading %f, Ddegree %f") %(heading,Ddegree)
+			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
+			print ("angle %d") %angle
+	else :
+		while not(degrees(heading) > angleneg or degrees(heading) <= anglepos) :
+			#set direction
+			if (Ddegree <0 and abs(Ddegree)< 180) or (Ddegree >= 0 and abs(Ddegree)>= 180) :
+				angle = 1 #turn left
+			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
+				angle = 3 #turn right
+			AngleWrite(angle)
+			SpeedWrite(1)
+			heading = getYaw()
+
+			Gdegree = XYtoDegree(Dlati,Dlong)
+			(anglepos, angleneg) =AdjustAngle(Gdegree)
+			Ddegree = Gdegree - degrees(heading)
+			print ("heading %f, Ddegree %f") %(heading,Ddegree)
+			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
+			print ("angle %d") %angle
 
 def untilDest(dest_lati, dest_long) :	
 	while state!=2:
@@ -122,7 +137,7 @@ def untilDest(dest_lati, dest_long) :
 	if state ==2:
 		SpeedWrite(0)
 		AngleWrite(2)
-		return state
+		return state	
 
 slati =float(sys.stdin.readline())
 slong =float(sys.stdin.readline())
