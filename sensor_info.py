@@ -2,10 +2,9 @@
 import time
 import serial
 import sys, getopt
-from math import atan, sin, cos, pi, asin, sqrt
+from math import atan, sin, cos, pi, asin, sqrt, radians
 
 sys.path.append('.')
-import RTIMU
 import os.path
 from Adafruit_PWM_Servo_Driver import PWM
 
@@ -30,10 +29,10 @@ def SpeedWrite(speed): #desire speed
 	global current_speed
 	if current_speed != speed :
 		current_speed = speed
-		pwm.setPWM(1, 0, speed*20+280)
+		pwm.setPWM(1, 0, speed*20+284)
 		# pwm.setPWM(1, 0, speed*33+268)
 		print('##############################################Speed Change')
-		print('speed : %d') %(speed)
+		print('speed : %d' %(speed))
 
 def AngleWrite(angle): #control angle
 	global current_angle, anglePWM
@@ -50,6 +49,7 @@ def AngleWrite(angle): #control angle
 		print('##############################################Angle Change')
 
 def locate(): #gps return lati,long
+	# return (37.583243, 127.027523)
 	ser.flushInput()
 	while True:
 		data = ser.readline()
@@ -75,52 +75,24 @@ def locate(): #gps return lati,long
 	# calculated Latitude, Longitude
 	processed_Lati = float(Latitude_s[:2]) + float(Latitude_s[2:])/60.0 # calculated Latitude, Longitude
 	processed_Long = float(Longitude_s[:3]) + float(Longitude_s[3:])/60.0
-	print ("lati : %s, long :%s ") %(processed_Lati,processed_Long)
+	print ("lati : %s, long :%s " %(processed_Lati,processed_Long))
 	return (processed_Lati, processed_Long)
-
-def init_imu():
-	global imu, poll_interval, SETTINGS_FILE, s
-	SETTINGS_FILE = "RTIMULib"
-
-	print("Using settings file " + SETTINGS_FILE + ".ini")
-	if not os.path.exists(SETTINGS_FILE + ".ini"):
-		print("Settings file does not exist, will be created")
-
-	s = RTIMU.Settings(SETTINGS_FILE)
-	imu = RTIMU.RTIMU(s)
-
-	print("IMU Name: " + imu.IMUName())
-
-	if (not imu.IMUInit()):
-		print("IMU Init Failed")
-		sys.exit(1)
-	else:
-		print("IMU Init Succeeded")
-
-	# this is a good time to set any fusion parameters
-	imu.setSlerpPower(0.02)
-	imu.setGyroEnable(True)
-	imu.setAccelEnable(True)
-	imu.setCompassEnable(True)
-
-	poll_interval = imu.IMUGetPollInterval()
-	print("Recommended Poll Interval: %dmS\n" % poll_interval)
 
 def getYaw(): #gps return lati,long
 	global serYaw
 	serYaw.flushInput()
 	while True:
 		data = serYaw.readline()
-		if data.startswith('#YPR=') == True:
+		if data.startswith(b'#YPR=') == True:
 			yprRaw = data
-			ypr = yprRaw.split(',')
+			ypr = yprRaw.split(b',')
 			YAW = ypr[0]
 			PITCH = float(ypr[1])
 			ROLL = float(ypr[2])
 			YAW = float(YAW[5:])
 			if YAW < 0 :
 				YAW = YAW + 360
-			print 'YAW: %f' % YAW
-			print 'PITCH: %f' %PITCH
-			print 'ROLL: %f' % ROLL
+			print ('YAW: %f' % YAW)
+			print ('PITCH: %f' %PITCH)
+			print ('ROLL: %f' % ROLL)
 			return radians(YAW)

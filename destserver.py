@@ -4,9 +4,10 @@ from socketIO_client import SocketIO, LoggingNamespace
 import json
 import sys
 import subprocess
+import time
 
 #initialize variable
-boatProcess = None
+boatProcess=None
 dest_lati =0.0
 dest_long =0.0
 PingSent = False
@@ -34,20 +35,23 @@ def DoingBoat(err, data):
 			dest_lati = boatinfo["targetGps"]["lat"]  
 			dest_long = boatinfo["targetGps"]["lng"]
 			boatinfo["isMoving"] = True
+			print("doing boat")
 			print("I am going to move to lat: %s and lng: %s!" % (dest_lati, dest_long))
 
-			cmd = ["python","gotodest.py"]
-			boatProcess = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+			cmd = ["python","/home/pi/hl/gotodest.py"]
+			boatProcess = subprocess.Popen(cmd,stdin=subprocess.PIPE)
 			boatProcess.stdin.write("%s\n" %str(dest_lati))
 			boatProcess.stdin.write(str(dest_long))
+			# boatProcess.stdin.write("%s\n" %str(30.4542))
+			# boatProcess.stdin.write("%s\n" %str(170.4542))
 			boatProcess.stdin.close()
-			print(boatProcess)
-			print("doing boat")
+			# print(boatProcess)
 	else:
 		print("Error occured while DoingBoat.")
 
 def StartAgain(err, data):
 	global boatinfo
+	global boatProcess
 	global dest_lati
 	global dest_long
 	
@@ -61,8 +65,8 @@ def StartAgain(err, data):
 		print("I am moving again to lat: %s and lng %s!" % (dest_lati, dest_long))
 
 		"""boat process"""
-		cmd = ["python","gotodest.py"]
-		boatProcess = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+		cmd = ["python","/home/pi/hl/gotodest.py"]
+		boatProcess = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 		boatProcess.stdin.write("%s\n" %str(dest_lati))
 		boatProcess.stdin.write(str(dest_long))
 		boatProcess.stdin.close()
@@ -76,6 +80,7 @@ def StartAgain(err, data):
 
 def Stop(err, data):
 	global boatinfo
+	global boatProcess
 	if err == None and boatinfo["id"] == data["id"]:
 		boatinfo["speed"] = 0
 		boatinfo["isMoving"] = False
@@ -85,6 +90,7 @@ def Stop(err, data):
 		SpeedWrite(0)
 		"""boat process"""
 		boatProcess.kill()
+		boatProcess =None
 		print("kill boat process")
 		print("I stopped!")
 	else:
@@ -146,8 +152,8 @@ def GoToBase(lat, lng):
 	print("I am going to move to lat: %s and lng: %s!" % (dest_lati, dest_long))
 
 	"""boat process"""
-	cmd = ["python","gotodest.py"]
-	boatProcess = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+	cmd = ["python","/home/pi/hl/gotodest.py"]
+	boatProcess = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 	boatProcess.stdin.write("%s\n" %str(dest_lati))
 	boatProcess.stdin.write(str(dest_long))
 	boatProcess.stdin.close()
@@ -156,7 +162,7 @@ def GoToBase(lat, lng):
 
 
 def init_control() :
-	for i in range(1) :
+	for i in range(4) :
 		AngleWrite(1)
 		SpeedWrite(1)
 		time.sleep(1)
@@ -168,11 +174,11 @@ def init_control() :
 	SpeedWrite(0)
 	AngleWrite(2)
 
-#최초로 자동차 세팅
+#최초로 배 세팅
 init_control()
 
 print("waiting for connection...")
-boat = SocketIO('192.168.1.121', 8080, LoggingNamespace)
+boat = SocketIO('192.168.0.3', 8080, LoggingNamespace)
 boat.on('connect', on_connect)
 boat.on('disconnect', on_disconnect)
 boat.on('reconnect', on_reconnect)
@@ -190,19 +196,32 @@ print("I am at lat: %s, lat %s" % (boatinfo["gps"]["lat"], boatinfo["gps"]["lng"
 LastPing = time.time()
 BaseFlag = False
 
+# lati=23.23456
+# longti=123.23456
+
+# cmd = ["python3","/home/pi/hl/gotodest.py"]
+# boatProcess = subprocess.Popen(cmd,stdin=subprocess.PIPE)
+# boatProcess.stdin.write("%s\n" %str(lati))
+# boatProcess.stdin.write(str(longti))
+# boatProcess.stdin.close()
+
 while True:
-	global boatProcess
-	global dest_lati
-	global dest_long
+	# global boatProcess
+	# global dest_lati
+	# global dest_long
 	
 	"""boat process"""
-	output = boatProcess.stdout.readline()
-	if boatProcess.poll() is not None:
-		print("boat arrived dest")
-		boat.emit('boat-arrived', boatinfo)
-	else :
-		print("boat state", output.strip())	
+	if boatProcess is not None :
+		# output = boatProcess.stdout.readline()
+		if boatProcess.poll() is not None:
+			print("boat arrived dest")
+			boat.emit('boat-arrived', boatinfo)
+			boatProcess=None
+		# else :
+		# 	print("boat state", output.strip())
 
+	boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
+	
 	if time.time() > LastPing + 1 and PingSent == True:
 		print(boatinfo)
 		PingSent = False
@@ -217,8 +236,9 @@ while True:
 		
 		"""boat process"""
 		boatProcess.kill()
-		cmd = ['python','gotodest.py']
-		boatProcess = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+		boatProcess =None
+		cmd = ["python","/home/pi/hl/gotodest.py"]
+		boatProcess = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 		boatProcess.stdin.write("%s\n" %str(dest_lati))
 		boatProcess.stdin.write(str(dest_long))
 		boatProcess.stdin.close()

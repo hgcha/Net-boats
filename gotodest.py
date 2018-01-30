@@ -1,18 +1,23 @@
 #-*-coding:utf-8 -*-
 from sensor_info import * 
-from destserver import dest_lati, dest_long
 import time
+import sys
 from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
+
 
 #initialize variable
 speed = 0
 angle = 2
 state = 0
+Dlati = 0
+Dlong = 0
 
 def GotoDest(dest_lati, dest_long):	
 	global state,speed,angle
-  
+	global Dlati, Dlong
+	state=0
 	if state ==0:
+		SpeedWrite(1)
 		print("state 0")
 		(Clati, Clong) = locate() #gps func -> radians
 		# Clati = 37.583176
@@ -39,7 +44,6 @@ def GotoDest(dest_lati, dest_long):
 			#print ("Gdegree :%f" %(Gdegree))
 			TurnHead(Gdegree)	
 			print("out Turn head")
-			sys.stdout.flush()
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
@@ -48,7 +52,6 @@ def GotoDest(dest_lati, dest_long):
 	elif state ==1:
 		print("state 1")
 		print("arrived dest")
-		sys.stdout.flush()
 		AngleWrite(2)
 		SpeedWrite(0)
 		state =2
@@ -90,6 +93,7 @@ def AdjustAngle (Gdegree) :
 
 def TurnHead(Gdegree):
 	#set heading 
+	global Dlati, Dlong
 	heading = getYaw()
 	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
 	(anglepos, angleneg) =AdjustAngle(Gdegree)
@@ -110,9 +114,9 @@ def TurnHead(Gdegree):
 			Gdegree = XYtoDegree(Dlati,Dlong)
 			(anglepos, angleneg) =AdjustAngle(Gdegree)
 			Ddegree = Gdegree - degrees(heading)
-			print ("heading %f, Ddegree %f") %(heading,Ddegree)
-			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
-			print ("angle %d") %angle
+			print ("heading %f, Ddegree %f" %(heading,Ddegree))
+			print ("Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos))
+			print ("angle %d" %angle)
 	else :
 		while not(degrees(heading) > angleneg or degrees(heading) <= anglepos) :
 			#set direction
@@ -133,13 +137,16 @@ def TurnHead(Gdegree):
 
 def untilDest(dest_lati, dest_long) :	
 	while state!=2:
+		print("until dest")
 		GotoDest(dest_lati, dest_long) #가고자하는 위치 입력
 	if state ==2:
+		print("state 2")
 		SpeedWrite(0)
 		AngleWrite(2)
-		return state	
 
-slati =float(sys.stdin.readline())
-slong =float(sys.stdin.readline())
+# slati = 129
+# slong = 35
+slati = float(sys.stdin.readline())
+slong = float(sys.stdin.readline())
 print(slati, slong)
-untilDest(slati,slong)	
+untilDest(slati,slong)
