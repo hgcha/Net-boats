@@ -2,7 +2,7 @@
 from sensor_info import * 
 import time
 import sys
-from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
+# from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
 
 
 #initialize variable
@@ -15,14 +15,17 @@ Dlong = 0
 def GotoDest(dest_lati, dest_long):	
 	global state,speed,angle
 	global Dlati, Dlong
-	state=0
-	if state ==0:
+	if state == 0:
 		SpeedWrite(1)
-		print("state 0")
-		(Clati, Clong) = locate() #gps func -> radians
+		# print("state 0")
+		try:
+			(Clati, Clong) = locate() #gps func -> radians
+		except Exception as ex: 
+			print("error1", ex)	
 		# Clati = 37.583176
 		# Clong = 127.026015
-
+		print("Clati",Clati)
+		print("Clong",Clong)
 		#change degree to radians
 		rdest_lati = radians(dest_lati)
 		rdest_long = radians(dest_long)
@@ -33,38 +36,29 @@ def GotoDest(dest_lati, dest_long):
 		Dlong = rdest_long - rClong  #diffrence current longitude and destination longitude
 		# print ("rCLati :%f, rCLong:%f" %(rClati, rClong))
 		# print ("Dlati :%f, Dlong :%f" %(Dlati, Dlong))
-
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
+		print('distance: %f' %dist)
 
-		if dist <= 3:#between current pos - dest pos <= 5m
-			state =1
+		if dist <= 5:#between current pos - dest pos <= 5m
+			state = 1
+			print("===============================================================================================================")
 
 		else:
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
 			#print ("Gdegree :%f" %(Gdegree))
 			TurnHead(Gdegree)	
-			print("out Turn head")
+			# print("out Turn head")
 			#go straight during 10sec	
 			AngleWrite(2)
 			SpeedWrite(1)
 			# time.sleep(1) #would be change(according to distance)
 			
-	elif state ==1:
+	elif state == 1:
 		print("state 1")
 		print("arrived dest")
 		AngleWrite(2)
 		SpeedWrite(0)
-		state =2
-		
-def UtmToDistance(Dlati, Dlong, dest_lati, Clati): 
-	#get distance between current pos and dest pos 
-	R = 6371000.0
-	a = sin(Dlati/2)**2 + cos(dest_lati)*cos(Clati)*sin(Dlong/2)**2
-	c = 2*atan2(sqrt(a), sqrt(1-a))
-	distance = R*c
-
-	print("distance: %f" % distance)
-	return distance
+		state = 2
 
 def XYtoDegree(Dlati, Dlong) : #
 	if Dlati>0:
@@ -94,10 +88,16 @@ def AdjustAngle (Gdegree) :
 def TurnHead(Gdegree):
 	#set heading 
 	global Dlati, Dlong
-	heading = getYaw()
+	try:
+		heading = getYaw()
+	except Exception as ex: # 에러 종류
+		print("error2", ex)
+	print("heading1: %f" %degrees(heading))
 	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
 	(anglepos, angleneg) =AdjustAngle(Gdegree)
-	print("heading: %f, Ddegree: %f" % (heading, Ddegree))
+	nowtime = time.time()
+	print("time : %f" % nowtime)
+	# print("heading: %f, Ddegree: %f" % (heading, Ddegree))
 
 	#until heading equal goal degree
 	if (anglepos - angleneg >= 0) == True :
@@ -109,14 +109,19 @@ def TurnHead(Gdegree):
 				angle = 3 #turn right
 			AngleWrite(angle)
 			SpeedWrite(1)
-			heading = getYaw()
-
+			try:
+				heading = getYaw()
+			except Exception as ex: # 에러 종류
+				print("error3", ex)
+			print("heading2: %f" %degrees(heading))
 			Gdegree = XYtoDegree(Dlati,Dlong)
 			(anglepos, angleneg) =AdjustAngle(Gdegree)
 			Ddegree = Gdegree - degrees(heading)
-			print ("heading %f, Ddegree %f" %(heading,Ddegree))
-			print ("Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos))
+			# print ("heading %f, Ddegree %f" %(heading,Ddegree))
+			# print ("Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos))
 			print ("angle %d" %angle)
+			nowtime = time.time()
+			print("time : %f" % nowtime)
 	else :
 		while not(degrees(heading) > angleneg or degrees(heading) <= anglepos) :
 			#set direction
@@ -126,27 +131,35 @@ def TurnHead(Gdegree):
 				angle = 3 #turn right
 			AngleWrite(angle)
 			SpeedWrite(1)
-			heading = getYaw()
-
+			try:
+				heading = getYaw()
+			except Exception as ex: # 에러 종류
+				print("error4", ex)
+			print("heading3: %f" %degrees(heading))
 			Gdegree = XYtoDegree(Dlati,Dlong)
 			(anglepos, angleneg) =AdjustAngle(Gdegree)
 			Ddegree = Gdegree - degrees(heading)
-			print ("heading %f, Ddegree %f") %(heading,Ddegree)
-			print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
-			print ("angle %d") %angle
+			# print ("heading %f, Ddegree %f" %(heading,Ddegree))
+			# print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
+			print ("angle %d" %angle)
+			nowtime = time.time()
+			print("time : %f" % nowtime)
 
 def untilDest(dest_lati, dest_long) :	
 	while state!=2:
-		print("until dest")
+		# print("until dest")
 		GotoDest(dest_lati, dest_long) #가고자하는 위치 입력
-	if state ==2:
+	if state == 2:
 		print("state 2")
 		SpeedWrite(0)
 		AngleWrite(2)
 
 # slati = 129
 # slong = 35
+
 slati = float(sys.stdin.readline())
 slong = float(sys.stdin.readline())
 print(slati, slong)
-untilDest(slati,slong)
+sys.stdout.flush()
+# untilDest(slati,slong)
+untilDest(37.582454,127.02670000)
