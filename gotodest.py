@@ -39,7 +39,7 @@ def GotoDest(dest_lati, dest_long):
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 		print('distance: %f' %dist)
 
-		if dist <= 5:#between current pos - dest pos <= 5m
+		if dist <= 3:#between current pos - dest pos <= 3m
 			state = 1
 			print("===============================================================================================================")
 
@@ -161,5 +161,5 @@ slati = float(sys.stdin.readline())
 slong = float(sys.stdin.readline())
 print(slati, slong)
 sys.stdout.flush()
-# untilDest(slati,slong)
-untilDest(37.582454,127.02670000)
+untilDest(slati,slong)
+# untilDest(37.582454,127.02670000)

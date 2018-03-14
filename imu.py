@@ -56,7 +56,6 @@ while True:
 	    	# print ('YAW: %f' % YAW)
 			# print ('PITCH: %f' %PITCH)
 			# print ('ROLL: %f' % ROLL)
-    	# time.sleep(0.1)
 	except Exception as ex: 
 		if yaw_past !=400:
 			yaw = open("yawValue.txt",'w')

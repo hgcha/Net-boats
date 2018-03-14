@@ -26,7 +26,7 @@ pwm.setPWMFreq(46)                        # Set frequency to 60 Hz
 # serYaw.open()
 
 def SpeedWrite(speed): #desire speed
-	pwm.setPWM(1, 0, speed*32+273)
+	pwm.setPWM(1, 0, speed*30+285)
 	# pwm.setPWM(1, 0, speed*33+268)
 	print('##############################################Speed Change')
 	print('speed : %d' %(speed))
@@ -111,7 +111,7 @@ def AngleWrite(angle): #control angleS
 # 	return (processed_Lati, processed_Long)
 
 def locate() :
-	return 36.1234, 123.1234
+	# return 36.1234, 123.1234
 	while True :
 		gps = open("gpsValue.txt",'r')
 		gpsvalue = gps.read()
@@ -179,4 +179,4 @@ def UtmToDistance(Dlati, Dlong, dest_lati, Clati):
 	distance = R*c
 
 	# print("distance: %f" % distance)
-	return distance		
+	return distance
