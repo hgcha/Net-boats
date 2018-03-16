@@ -187,6 +187,17 @@ def CheckSensor(err, data):
 			LastSensor = time.time()
 			SensorSent = True
 
+def CheckArrive(err, data):
+	if data == None:
+		print("Server didn't respond to boat-ping.")
+	else:
+		if err != None:
+			print(err)
+			# GoToBase_init()
+			print("Error occured while boat-ping.")
+		else:
+			print("Server successfully responded to boat-ping.")
+
 def SetBase(err, data):
 	global baseGps
 
@@ -244,7 +255,7 @@ speed = data["PWM"]
 init_control(speed)
 
 print("waiting for connection...")
-boat = SocketIO('192.168.0.7', 8080, LoggingNamespace)
+boat = SocketIO('192.168.0.6', 8080, LoggingNamespace)
 boat.on('connect', on_connect)
 boat.on('disconnect', on_disconnect)
 boat.on('reconnect', on_reconnect)
@@ -289,7 +300,7 @@ while True:
 
 		if boatProcess.poll() is not None:
 			print("boat arrived dest")
-			boat.emit('boat-arrive', boatinfo)
+			boat.emit('boat-arrive', boatinfo, CheckArrive)
 			boatstate =1
 			boatProcess=None
 
