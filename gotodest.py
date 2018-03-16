@@ -25,8 +25,8 @@ def GotoDest(dest_lati, dest_long):
 			print("error1", ex)	
 		# Clati = 37.583176
 		# Clong = 127.026015
-		print("Clati",Clati)
-		print("Clong",Clong)
+		# print("Clati",Clati)
+		# print("Clong",Clong)
 		#change degree to radians
 		rdest_lati = radians(dest_lati)
 		rdest_long = radians(dest_long)
@@ -42,7 +42,7 @@ def GotoDest(dest_lati, dest_long):
 
 		if dist <= 3:#between current pos - dest pos <= 3m
 			state = 1
-			print("===============================================================================================================")
+			# print("===============================================================================================================")
 
 		else:
 			Gdegree = XYtoDegree(Dlati,Dlong) #goal Degree 
@@ -55,7 +55,7 @@ def GotoDest(dest_lati, dest_long):
 			# time.sleep(1) #would be change(according to distance)
 			
 	elif state == 1:
-		print("state 1")
+		# print("state 1")
 		print("arrived dest")
 		AngleWrite(2)
 		SpeedWrite(0, speed)
@@ -95,7 +95,7 @@ def TurnHead(Gdegree):
 		heading = getYaw()
 	except Exception as ex: # 에러 종류
 		print("error2", ex)
-	print("heading1: %f" %degrees(heading))
+	# print("heading1: %f" %degrees(heading))
 	Ddegree = Gdegree - degrees(heading) #diffrence heading and goal Degree
 	(anglepos, angleneg) =AdjustAngle(Gdegree)
 	nowtime = time.time()
@@ -116,13 +116,13 @@ def TurnHead(Gdegree):
 				heading = getYaw()
 			except Exception as ex: # 에러 종류
 				print("error3", ex)
-			print("heading2: %f" %degrees(heading))
+			# print("heading2: %f" %degrees(heading))
 			Gdegree = XYtoDegree(Dlati,Dlong)
 			(anglepos, angleneg) =AdjustAngle(Gdegree)
 			Ddegree = Gdegree - degrees(heading)
 			# print ("heading %f, Ddegree %f" %(heading,Ddegree))
 			# print ("Gdegree %f  angleneg %f  anglepos %f" %(Gdegree,angleneg, anglepos))
-			print ("angle %d" %angle)
+			# print ("angle %d" %angle)
 			nowtime = time.time()
 			print("time : %f" % nowtime)
 	else :
@@ -138,13 +138,13 @@ def TurnHead(Gdegree):
 				heading = getYaw()
 			except Exception as ex: # 에러 종류
 				print("error4", ex)
-			print("heading3: %f" %degrees(heading))
+			# print("heading3: %f" %degrees(heading))
 			Gdegree = XYtoDegree(Dlati,Dlong)
 			(anglepos, angleneg) =AdjustAngle(Gdegree)
 			Ddegree = Gdegree - degrees(heading)
 			# print ("heading %f, Ddegree %f" %(heading,Ddegree))
 			# print ("Gdegree %f  angleneg %f  anglepos %f") %(Gdegree,angleneg, anglepos)
-			print ("angle %d" %angle)
+			# print ("angle %d" %angle)
 			nowtime = time.time()
 			print("time : %f" % nowtime)
 
@@ -154,7 +154,7 @@ def untilDest(dest_lati, dest_long) :
 		# print("until dest")
 		GotoDest(dest_lati, dest_long) #가고자하는 위치 입력
 	if state == 2:
-		print("state 2")
+		# print("state 2")
 		SpeedWrite(0, speed)
 		AngleWrite(2)
 		return 0

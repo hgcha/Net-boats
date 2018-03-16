@@ -21,7 +21,7 @@ SensorSent = False
 # os.system('modprobe w1-gpio')
 # os.system('modprobe w1-therm')
 # base_dir = '/sys/bus/w1/devices/'
-# device_folder = base_dir + '28-0316a360b7ff'
+# device_folder = base_dir + '28-0316a360b7ff' #28-0316a360b7ff #28-0516a3610fff
 # device_file = device_folder + '/w1_slave'
 # device_folder = glob.glob(base_dir + '28*')[0]
 
@@ -42,13 +42,15 @@ SensorSent = False
 #     if equals_pos != -1:
 #         temp_string = lines[1][equals_pos+2:]
 #         temp_c = float(temp_string) / 1000.0
-        # return temp_c
+#         return temp_c
 
 def DoingBoat(err, data):
 	global boatinfo
 	global boatProcess
 	global dest_lati
 	global dest_long
+
+	boatstate =0
 
 	if err == None and boatinfo["id"] == data["id"]:
 		boatinfo["targetGps"] = data["targetGps"]
@@ -283,46 +285,42 @@ BaseFlag = False
 print("connected to server")
 
 while True:
-	try:
-		boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
-		boatinfo["heading"] = degrees(getYaw())
-	except Exception as ex: # 에러 종류
-		print("error5", ex)
-
 	if boatProcess is not None :
-		while True :
-			output = boatProcess.stdout.readline()
-			if output.startswith('distance: ') == True:
-				print('=============================================distance')
-				print(output)
-			elif output.startswith('time : ') == True :
-				sensorTime = float(output[7:])
-				nowTime = time.time()
-				delaytime = nowTime - sensorTime
-				# print('delaytime : %f' %delaytime)
-				if delaytime < 0.2 :
-					print('break!==========================================')
-					break
-			elif output.startswith('arrived dest') == True :
-				break
-			print(output)
 
 		if boatProcess.poll() is not None:
 			print("boat arrived dest")
-			boat.emit('boat-arrived', boatinfo)
+			boat.emit('boat-arrive', boatinfo)
 			boatstate =1
 			boatProcess=None
 
+		if boatstate !=1:
+			while True :
+				output = boatProcess.stdout.readline()
+				if output.startswith('distance: ') == True:
+					print('=============================================distance')
+					print(output)
+				elif output.startswith('time : ') == True :
+					sensorTime = float(output[7:])
+					nowTime = time.time()
+					delaytime = nowTime - sensorTime
+					# print('delaytime : %f' %delaytime)
+					if delaytime < 0.2 :
+						print('break!==========================================')
+						break
+				elif output.startswith('arrived dest') == True :
+					break
+
+
 	else :
-		rdest_lati = radians(dest_lati)
-		rdest_long = radians(dest_long)
-		rClati = radians(boatinfo["gps"]["lat"])
-		rClong = radians(boatinfo["gps"]["lng"])
+		rdest_lati = radians(float(dest_lati))
+		rdest_long = radians(float(dest_long))
+		rClati = radians(float(boatinfo["gps"]["lat"]))
+		rClong = radians(float(boatinfo["gps"]["lng"]))
 
 		Dlati = rdest_lati - rClati
 		Dlong = rdest_long - rClong
 		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
-
+		print("distance", dist)
 		if dist >3 and boatstate ==1:
 			boatstate =0
 			cmd = ["python","/home/pi/hg/gotodest.py"]
@@ -334,6 +332,11 @@ while True:
 	if time.time() > LastPing + 1 and PingSent == True:
 		PingSent = False
 		print(boatinfo)
+		try:
+			boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
+			boatinfo["heading"] = degrees(getYaw())
+		except Exception as ex: # 에러 종류
+			print("error5", ex)
 		boat.emit('boat-ping', boatinfo, CheckPing)
 
 	if time.time() > LastSensor + 10 and SensorSent == True:
