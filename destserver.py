@@ -288,25 +288,48 @@ while True:
 		boatinfo["heading"] = degrees(getYaw())
 	except Exception as ex: # 에러 종류
 		print("error5", ex)
-			
-		# SpeedWrite(0, speed)
-		# rdest_lati = radians(dest_lati)
-		# rdest_long = radians(dest_long)
-		# rClati = radians(boatinfo["gps"]["lat"])
-		# rClong = radians(boatinfo["gps"]["lng"])
 
-		# Dlati = rdest_lati - rClati
-		# Dlong = rdest_long - rClong
-		# dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
+	if boatProcess is not None :
+		while True :
+			output = boatProcess.stdout.readline()
+			if output.startswith('distance: ') == True:
+				print('=============================================distance')
+				print(output)
+			elif output.startswith('time : ') == True :
+				sensorTime = float(output[7:])
+				nowTime = time.time()
+				delaytime = nowTime - sensorTime
+				# print('delaytime : %f' %delaytime)
+				if delaytime < 0.2 :
+					print('break!==========================================')
+					break
+			elif output.startswith('arrived dest') == True :
+				break
+			print(output)
 
-		# if dist >3 and boatstate ==1:
-		# 	print("aaa")
-		# 	boatstate = 0
-		# 	cmd = ["python","/home/pi/hg/gotodest.py"]
-		# 	boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
-		# 	boatProcess.stdin.write("%s\n" %str(dest_lati))
-		# 	boatProcess.stdin.write(str(dest_long))
-		# 	boatProcess.stdin.close()
+		if boatProcess.poll() is not None:
+			print("boat arrived dest")
+			boat.emit('boat-arrived', boatinfo)
+			boatstate =1
+			boatProcess=None
+
+	else :
+		rdest_lati = radians(dest_lati)
+		rdest_long = radians(dest_long)
+		rClati = radians(boatinfo["gps"]["lat"])
+		rClong = radians(boatinfo["gps"]["lng"])
+
+		Dlati = rdest_lati - rClati
+		Dlong = rdest_long - rClong
+		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
+
+		if dist >3 and boatstate ==1:
+			boatstate =0
+			cmd = ["python","/home/pi/hg/gotodest.py"]
+			boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
+			boatProcess.stdin.write("%s\n" %str(dest_lati))
+			boatProcess.stdin.write(str(dest_long))
+			boatProcess.stdin.close()
 
 	if time.time() > LastPing + 1 and PingSent == True:
 		PingSent = False

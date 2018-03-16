@@ -157,6 +157,7 @@ def untilDest(dest_lati, dest_long) :
 		print("state 2")
 		SpeedWrite(0, speed)
 		AngleWrite(2)
+		return 0
 
 json_data = open("config.json").read()
 data = json.loads(json_data)
@@ -164,4 +165,5 @@ speed = data["PWM"]
 
 slati = float(sys.stdin.readline())
 slong = float(sys.stdin.readline())
+sys.stdout.flush()
 untilDest(slati,slong)
