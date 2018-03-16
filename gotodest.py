@@ -2,24 +2,25 @@
 from sensor_info import * 
 import time
 import sys
+import json
+
 # from math import degrees, radians, atan, atan2, sin, cos, pi, asin, sqrt
 
 
 #initialize variable
-speed = 0
 angle = 2
 state = 0
 Dlati = 0
 Dlong = 0
 
 def GotoDest(dest_lati, dest_long):	
-	global state,speed,angle
+	global state, speed, angle
 	global Dlati, Dlong
 	if state == 0:
-		SpeedWrite(1)
+		SpeedWrite(1, speed)
 		# print("state 0")
 		try:
-			(Clati, Clong) = locate() #gps func -> radians
+			Clati, Clong = locate() #gps func -> radians
 		except Exception as ex: 
 			print("error1", ex)	
 		# Clati = 37.583176
@@ -50,14 +51,14 @@ def GotoDest(dest_lati, dest_long):
 			# print("out Turn head")
 			#go straight during 10sec	
 			AngleWrite(2)
-			SpeedWrite(1)
+			SpeedWrite(1, speed)
 			# time.sleep(1) #would be change(according to distance)
 			
 	elif state == 1:
 		print("state 1")
 		print("arrived dest")
 		AngleWrite(2)
-		SpeedWrite(0)
+		SpeedWrite(0, speed)
 		state = 2
 
 def XYtoDegree(Dlati, Dlong) : #
@@ -74,7 +75,8 @@ def XYtoDegree(Dlati, Dlong) : #
 		else :
 			return degrees(3*pi/2)
 
-def AdjustAngle (Gdegree) :
+def AdjustAngle (Gdegree):
+	global speed
 	erroranagle = 10 #later need to set  
 	angleneg = Gdegree-erroranagle
 	anglepos = Gdegree+erroranagle
@@ -86,6 +88,7 @@ def AdjustAngle (Gdegree) :
 	return (anglepos, angleneg)	
 
 def TurnHead(Gdegree):
+	global speed
 	#set heading 
 	global Dlati, Dlong
 	try:
@@ -108,7 +111,7 @@ def TurnHead(Gdegree):
 			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
 				angle = 3 #turn right
 			AngleWrite(angle)
-			SpeedWrite(1)
+			SpeedWrite(1, speed)
 			try:
 				heading = getYaw()
 			except Exception as ex: # 에러 종류
@@ -130,7 +133,7 @@ def TurnHead(Gdegree):
 			elif (Ddegree >=0 and abs(Ddegree)< 180) or (Ddegree < 0 and abs(Ddegree) >= 180) :
 				angle = 3 #turn right
 			AngleWrite(angle)
-			SpeedWrite(1)
+			SpeedWrite(1, speed)
 			try:
 				heading = getYaw()
 			except Exception as ex: # 에러 종류
@@ -145,21 +148,20 @@ def TurnHead(Gdegree):
 			nowtime = time.time()
 			print("time : %f" % nowtime)
 
-def untilDest(dest_lati, dest_long) :	
+def untilDest(dest_lati, dest_long) :
+	global speed	
 	while state!=2:
 		# print("until dest")
 		GotoDest(dest_lati, dest_long) #가고자하는 위치 입력
 	if state == 2:
 		print("state 2")
-		SpeedWrite(0)
+		SpeedWrite(0, speed)
 		AngleWrite(2)
 
-# slati = 129
-# slong = 35
+json_data = open("config.json").read()
+data = json.loads(json_data)
+speed = data["PWM"]
 
 slati = float(sys.stdin.readline())
 slong = float(sys.stdin.readline())
-print(slati, slong)
-sys.stdout.flush()
 untilDest(slati,slong)
-# untilDest(37.582454,127.02670000)

@@ -7,12 +7,13 @@ import time
 from math import degrees
 import os
 import glob
+import json
 
 #initialize variable
-boatProcess=None
-boatstate =0
-dest_lati =0.0
-dest_long =0.0
+boatProcess = None
+boatstate = 0
+dest_lati = 0.0
+dest_long = 0.0
 PingSent = False
 SensorSent = False
 
@@ -76,7 +77,7 @@ def DoingBoat(err, data):
 
 				boatProcess =None
 
-			cmd = ["python","/home/pi/hl-test/gotodest.py"]
+			cmd = ["python","/home/pi/hg/gotodest.py"]
 			boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
 			boatProcess.stdin.write("%s\n" %str(dest_lati))
 			boatProcess.stdin.write(str(dest_long))
@@ -103,13 +104,12 @@ def StartAgain(err, data):
 		print("I am moving again to lat: %s and lng %s!" % (dest_lati, dest_long))
 
 		"""boat process"""
-		cmd = ["python","/home/pi/hl-test/gotodest.py"]
+		cmd = ["python","/home/pi/hg/gotodest.py"]
 		boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
 		boatProcess.stdin.write("%s\n" %str(dest_lati))
 		boatProcess.stdin.write(str(dest_long))
 		boatProcess.stdin.close()
 		print("start again")
-
 	else:
 		print("Error occured while StartAgain.")
 		print(err)
@@ -145,7 +145,7 @@ def Stop(err, data):
 	else:
 		print("Error occured while Stop")
 		print(err)
-	SpeedWrite(0)	
+	SpeedWrite(0, speed)	
 
 def on_connect():
 	print("connect")
@@ -187,12 +187,14 @@ def CheckSensor(err, data):
 
 def SetBase(err, data):
 	global baseGps
+
 	baseGps["lat"] = data["data"]["lat"]
 	baseGps["lng"] = data["data"]["lng"]
+	boat.emit("boat-received", boatinfo)
 	print("Base is setted to lat: %s and lng: %s." % (baseGps["lat"], baseGps["lng"]))
 
 def GoToBase(lat, lng):
-	global dest_lati4
+	global dest_lati
 	global dest_long
 
 	boatinfo["targetGps"] = baseGps
@@ -202,7 +204,7 @@ def GoToBase(lat, lng):
 	print("I am going to move to lat: %s and lng: %s!" % (dest_lati, dest_long))
 
 	"""boat process"""
-	cmd = ["python","/home/pi/hl-test/gotodest.py"]
+	cmd = ["python", "/home/pi/hg/gotodest.py"]
 	boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
 	boatProcess.stdin.write("%s\n" %str(dest_lati))
 	boatProcess.stdin.write(str(dest_long))
@@ -210,74 +212,37 @@ def GoToBase(lat, lng):
 	print(boatProcess)
 	print("I'll goto base")
 
-def init_control() :
+def init_control(speed) :
 	for i in range(2) :
 		AngleWrite(1)
-		SpeedWrite(1)
+		SpeedWrite(1, speed)
 		time.sleep(1)
 		AngleWrite(2)
-		SpeedWrite(0)
+		SpeedWrite(0, speed)
 		time.sleep(1)
-		SpeedWrite(1)
+		SpeedWrite(1, speed)
 		AngleWrite(3)
 		time.sleep(1)
-		SpeedWrite(0)
+		SpeedWrite(0, speed)
 		AngleWrite(2)
 		time.sleep(1)
-	SpeedWrite(0)
+	SpeedWrite(0, speed)
 	AngleWrite(2)
-
-# def readGPS() :
-# 	while True :
-# 		gps = open("gpsValue.txt",'r')
-# 		gpsvalue = gps.read()
-# 		gpsparsed = gpsvalue.split(' ')
-# 		# print("======")
-# 		# print (gpsparsed[0])
-# 		# print("======")
-# 		# print (gpsparsed[1])
-# 		# print(gpsparsed[0])
-		
-# 		if gpsparsed[0].startswith('37') == True :
-# 			processed_Lati = float(gpsparsed[0])
-# 			processed_Long = float(gpsparsed[1])
-# 			gps.close()
-# 			print('processed_Lati : %s , processed_Long : %s' %(processed_Lati,processed_Long) )
-# 			return processed_Lati, processed_Long
-# 		else :
-# 			print("GPS signal is not found.")
-# 			gps.close()
-# 		time.sleep(0.1)
-
-# def yawMutexLock() :
-# 	yawMutex = open("yawMutex.txt", 'r')
-# 	while True :
-# 		if yawMutex.readline() == "0" :
-# 			yawMutex.close()
-# 			break
-# 		time.sleep(0.05)
-# 	yawMutex = open("yawMutex.txt", 'w')
-# 	yawMutex.write("1")
-# 	yawMutex.close()
 
 # for i in range(300,330,1) :
 # 	pwm.setPWM(1, 0, i)
 # 	time.sleep(1)
 # 	print(i)
 
+json_data = open("config.json").read()
+data = json.loads(json_data)
+speed = data["PWM"]
+
 # 최초로 배 세팅
-init_control()
-
-# gpsMutex = open("gpsMutex.txt", 'w')
-# gpsMutex.write("0")
-# gpsMutex.close()
-
-# yawMutex = open("yawMutex.txt", 'w')
-# yawMutex.write("0")
-# yawMutex.close()
+init_control(speed)
 
 print("waiting for connection...")
-boat = SocketIO('192.168.0.4', 8080, LoggingNamespace)
+boat = SocketIO('192.168.0.7', 8080, LoggingNamespace)
 boat.on('connect', on_connect)
 boat.on('disconnect', on_disconnect)
 boat.on('reconnect', on_reconnect)
@@ -288,7 +253,7 @@ boat.on('boat-resume', StartAgain)
 boat.on('boat-stop', Stop)
 
 p = subprocess.Popen(["hostname", "-I"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-boatinfo = {"id": int(sys.argv[1]),
+boatinfo = {"id": data["id"],
 			"ip": p.communicate()[0].split(" ")[0],
             "gps": {"lat" : None, "lng" : None},
             "targetGps": {"lat" : None, "lng" : None},
@@ -296,17 +261,21 @@ boatinfo = {"id": int(sys.argv[1]),
             "heading": None,
             "isMoving": False,
             "isStopped": False}
+            
 baseGps = {"lat": None, "lng": None}
-boatsensor = {"temperature": None}
+
+boatsensor = {"id": boatinfo["id"],
+		      "temperature": None}
 
 boat.emit("boat-base", boatinfo, SetBase)
 boat.emit('boat-ping', boatinfo, CheckPing)
-boat.emit('boat-sensor', boatinfo, CheckSensor)
+boat.emit('boat-sensor', boatsensor, CheckSensor)
 
 try :
 	boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
 except Exception as ex: 
 	print("error6", ex)	
+
 print("I am at lat: %s, lat %s" % (boatinfo["gps"]["lat"], boatinfo["gps"]["lng"]))
 LastPing = time.time()
 LastSensor = time.time()
@@ -314,86 +283,40 @@ BaseFlag = False
 print("connected to server")
 
 while True:
-	# global boatProcess
-	# global dest_lati
-	# global dest_long
-	
-	"""boat process"""
-	if boatProcess is not None :
-		while True :
-			output = boatProcess.stdout.readline()
-			if output.startswith('heading') == True:
-				heading_output = output
-				s = heading_output.split(' ')
-				boatinfo["heading"] = s[1]
-			elif output.startswith('Clati') == True:
-				lat = output
-				s = lat.split(' ')
-				boatinfo["gps"]["lat"] = s[1][:9]
-			elif output.startswith('Clong') == True:
-				lng = output
-				s = lng.split(' ')
-				boatinfo["gps"]["lng"] = s[1][:8]
-			elif output.startswith('distance') == True:
-				print('=============================================distance')
-				print(output)
-			elif output.startswith('time : ') == True :
-				sensorTime = float(output[7:])
-				nowTime = time.time()
-				delaytime = nowTime - sensorTime
-				# print('delaytime : %f' %delaytime)
-				if delaytime < 0.2 :
-					print('break!==========================================')
-					break
-			elif output.startswith('arrived dest') == True :
-				break
-			# print(output)
+	try:
+		boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
+		boatinfo["heading"] = degrees(getYaw())
+	except Exception as ex: # 에러 종류
+		print("error5", ex)
+			
+		# SpeedWrite(0, speed)
+		# rdest_lati = radians(dest_lati)
+		# rdest_long = radians(dest_long)
+		# rClati = radians(boatinfo["gps"]["lat"])
+		# rClong = radians(boatinfo["gps"]["lng"])
 
-		if boatProcess.poll() is not None:
-			print("boat arrived dest")
-			boat.emit('boat-arrived', boatinfo)
-			boatstate =1
-			boatProcess=None
-		# 처리후 남았으나, 어느역할을 하는지 몰라 냅둠 -2/1 태연
-		# else :
-		# 	print(output)
-		# 	data = output.strip()
-		# 	print(output.strip())
+		# Dlati = rdest_lati - rClati
+		# Dlong = rdest_long - rClong
+		# dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
 
-	else :
-		print("doing")
-		try:
-			boatinfo["gps"]["lat"], boatinfo["gps"]["lng"] = locate()
-			boatinfo["heading"] = degrees(getYaw())
-		except Exception as ex: # 에러 종류
-			print("error5", ex)
-		SpeedWrite(0)
-		rdest_lati = radians(dest_lati)
-		rdest_long = radians(dest_long)
-		rClati = radians(boatinfo["gps"]["lat"])
-		rClong = radians(boatinfo["gps"]["lng"])
-
-		Dlati = rdest_lati - rClati
-		Dlong = rdest_long - rClong
-		dist = UtmToDistance(Dlati, Dlong, rdest_lati, rClati)
-
-		if dist >3 and boatstate ==1:
-			print("aaa")
-			boatstate =0
-			cmd = ["python","/home/pi/hl-test/gotodest.py"]
-			boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
-			boatProcess.stdin.write("%s\n" %str(dest_lati))
-			boatProcess.stdin.write(str(dest_long))
-			boatProcess.stdin.close()
-	
-	# boatsensor["temperature"] = read_temp()
+		# if dist >3 and boatstate ==1:
+		# 	print("aaa")
+		# 	boatstate = 0
+		# 	cmd = ["python","/home/pi/hg/gotodest.py"]
+		# 	boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
+		# 	boatProcess.stdin.write("%s\n" %str(dest_lati))
+		# 	boatProcess.stdin.write(str(dest_long))
+		# 	boatProcess.stdin.close()
 
 	if time.time() > LastPing + 1 and PingSent == True:
-		# print(boatinfo)
 		PingSent = False
+		print(boatinfo)
 		boat.emit('boat-ping', boatinfo, CheckPing)
 
-	boat.wait(seconds=0.1)
+	if time.time() > LastSensor + 10 and SensorSent == True:
+		SensorSent = False
+		# boatsensor["temperature"] = read_temp()
+		boat.emit('boat-sensor', boatsensor, CheckSensor)
 
 	if time.time() > LastPing + 60 and BaseFlag == False:
 		print("moving to base [lat: %s, lng: %s]" % (baseGps["lat"], baseGps["lng"]))
@@ -417,11 +340,11 @@ while True:
 			boatProcess =None
 
 			AngleWrite(1)
-			SpeedWrite(0)
+			SpeedWrite(0, speed)
 			print("kill boat process")
 
-		cmd = ["python","/home/pi/hl-test/gotodest.py"]
-		boatProcess = subprocess.Popen(cmd,stdout=subprocess.PIPE,stdin=subprocess.PIPE)
+		cmd = ["python", "/home/pi/hg/gotodest.py"]
+		boatProcess = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		boatProcess.stdin.write("%s\n" %str(dest_lati))
 		boatProcess.stdin.write(str(dest_long))
 		boatProcess.stdin.close()
@@ -429,5 +352,4 @@ while True:
 
 		BaseFlag = True 
 
-	if time.time() > LastSensor + 10 and SensorSent == True:
-		boat.emit('boat-sensor', boatinfo, CheckSensor)
+	boat.wait(seconds=0.1)
